@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Clara AI Pricing</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/airbnb_logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        #map { height: 100%; min-height: 300px; z-index: 1; transition: all 0.3s ease; }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-slate-100 p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-4">
+        <div class="bg-slate-900 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-2xl">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight">Santa Clara <span class="text-red-500">AI</span> Pricing</h1>
+                <p class="text-slate-400 text-xs">Price Prediction of Santa Clara</p>
+            </div>
+            <button type="button" onclick="resetDashboard()" class="text-xs bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-full transition-all border border-slate-700">Reset Dashboard</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div class="lg:col-span-4 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                <form id="predictionForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Guests</label>
+                            <input type="number" id="acc" value="2" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Beds</label>
+                            <input type="number" id="bed" value="1" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Baths</label>
+                            <input type="number" id="bath" value="1" step="0.5" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Amenities</label>
+                            <input type="number" id="amenities" value="15" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-center ml-1">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">Seasonal Logic</label>
+                                <button type="button" id="toggleMode" class="text-[9px] font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter transition-all">
+                                    Switch to Manual
+                                </button>
+                            </div>
+                            
+                            <div id="seasonalContainer" class="w-full h-[42px] bg-slate-100 border border-slate-200 rounded-xl px-2 flex items-center justify-center gap-2 transition-all">
+                                <div id="autoDisplay" class="flex items-center gap-2">
+                                    <span class="flex h-2 w-2 relative">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </span>
+                                    <span id="seasonalStatus" class="text-[9px] font-black text-slate-600 uppercase tracking-tighter">
+                                        FETCHING DATA...
+                                    </span>
+                                </div>
+                                
+                                <input type="date" id="manualDate" class="hidden w-full bg-transparent border-none text-xs font-bold text-slate-700 outline-none focus:ring-0">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Availability</label>
+                            <select id="available" class="appearance-none w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                                <option value="1">Available (Instant)</option>
+                                <option value="0">Not Available (Booked)</option>
+                            </select>
+                        </div>
+
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Neighborhood</label>
+                        <select id="neighborhood" class="appearance-none w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                            <option value="Campbell">Campbell</option>
+                            <option value="Cupertino">Cupertino</option>
+                            <option value="Gilroy">Gilroy</option>
+                            <option value="Los Altos">Los Altos</option>
+                            <option value="Los Altos Hills">Los Altos Hills</option>
+                            <option value="Los Gatos">Los Gatos</option>
+                            <option value="Milpitas">Milpitas</option>
+                            <option value="Monte Sereno">Monte Sereno</option>
+                            <option value="Morgan Hill">Morgan Hill</option>
+                            <option value="Mountain View">Mountain View</option>
+                            <option value="Palo Alto">Palo Alto</option>
+                            <option value="San Jose">San Jose</option>
+                            <option value="Santa Clara" selected>Santa Clara</option>
+                            <option value="Saratoga">Saratoga</option>
+                            <option value="Sunnyvale">Sunnyvale</option>
+                            <option value="Unincorporated Areas">Unincorporated Areas</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1 pb-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Room Type</label>
+                        <select id="room_type" class="appearance-none w-full bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer">
+                            <option value="Entire home/apt">Entire Home/Apt</option>
+                            <option value="Private room">Private Room</option>
+                            <option value="Shared room">Shared Room</option>
+                            <option value="Hotel room">Hotel Room</option>
+                        </select>
+                    </div>
+
+                    <div class="border-t border-slate-100 my-4 pt-4">
+                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95 shadow-red-100 uppercase tracking-widest text-xs">
+                            Run Prediction
+                        </button>
+                    </div>
+
+                </form>
+
+                 <div class="mt-4 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="flex gap-3">
+                        <div class="w-1 bg-red-500 rounded-full"></div>
+                        <p class="text-[9px] text-slate-500 leading-relaxed">
+                            <b class="text-slate-700 uppercase block mb-1">Prediction Consistency</b>
+                            This graph compares how close the Random Forest and XGBoost models are. A smaller gap means the prediction is more reliable.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="w-1 bg-slate-300 rounded-full"></div>
+                        <p class="text-[9px] text-slate-500 leading-relaxed">
+                            <b class="text-slate-700 uppercase block mb-1">Feature Significance</b>
+                            Shows which factors (like Neighborhood or Room Type) had the most "weight" in determining your property's price.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="w-1 bg-slate-900 rounded-full"></div>
+                        <p class="text-[9px] text-slate-500 leading-relaxed">
+                            <b class="text-slate-700 uppercase block mb-0.5">Market Value</b>
+                            The central predicted price represents the fair market nightly rate based on current Santa Clara data.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-8 flex flex-col gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <div id="result" class="flex items-center justify-center p-6 bg-slate-900 rounded-[2rem] border border-slate-800 min-h-[150px]">
+                        <div class="text-center">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Market Value</p>
+                            <h2 id="predictedPrice" class="text-5xl font-black text-white">$0.00</h2>
+                            <div id="subPrices" class="hidden mt-2 flex justify-center gap-3 text-[10px] font-mono text-slate-400">
+                                <span>RF: <span id="rfVal">--</span></span>
+                                <span>XGB: <span id="xgbVal">--</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="map" class="rounded-[2rem] border border-slate-200 overflow-hidden shadow-inner"></div>
+                </div>
+                
+               <div class="flex-1 grid grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-2 text-center">Prediction Consistency</p>
+                        <div class="flex-grow min-h-0"><canvas id="modelChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-2 text-center">Feature Significance</p>
+                        <div class="flex-grow min-h-0"><canvas id="impactChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

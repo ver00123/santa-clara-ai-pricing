@@ -24,24 +24,18 @@ const coords = {
 
 function resetDashboard() {
     document.getElementById('predictionForm').reset();
-    
     document.getElementById('predictedPrice').innerText = "$0.00";
     document.getElementById('subPrices').classList.add('hidden');
-    
     map.flyTo([37.3541, -121.9552], 10);
     marker.setLatLng([37.3541, -121.9552]);
     if (marker.getPopup()) marker.closePopup();
-
     if(chart1) chart1.destroy();
     if(chart2) chart2.destroy();
-    
     isManualMode = false;
     toggleBtn.innerText = "Switch to Manual";
     autoDisplay.classList.remove('hidden');
     manualDateInput.classList.add('hidden');
     updateRealTimeSeason();
-    
-    console.log("Dashboard reset successful.");
 }
 
 function updateRealTimeSeason() {
@@ -51,7 +45,6 @@ function updateRealTimeSeason() {
     const day = now.getDate().toString().padStart(2, '0');
     const isWeekend = (now.getDay() === 0 || now.getDay() === 6);
     const statusText = isWeekend ? "WEEKEND RATE" : "WEEKDAY RATE";
-    
     const displayElement = document.getElementById('seasonalStatus');
     if (displayElement) {
         displayElement.innerText = `${monthName} ${day} • ${statusText}`;
@@ -89,16 +82,30 @@ function getSeasonalData() {
 document.getElementById('predictionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const accInput = document.getElementById('acc');
+    const bedInput = document.getElementById('bed');
+    const bathInput = document.getElementById('bath');
+    const amenInput = document.getElementById('amenities');
+
+    const acc = Math.abs(parseFloat(accInput.value)) || 0;
+    const bed = Math.abs(parseFloat(bedInput.value)) || 0;
+    const bath = Math.abs(parseFloat(bathInput.value)) || 0;
+    const amenities = Math.abs(parseFloat(amenInput.value)) || 0;
+
+    accInput.value = acc;
+    bedInput.value = bed;
+    bathInput.value = bath;
+    amenInput.value = amenities;
+
     const seasonal = getSeasonalData();
     const data = {
-        acc: document.getElementById('acc').value,
-        bed: document.getElementById('bed').value,
-        bath: document.getElementById('bath').value,
-        amenities: document.getElementById('amenities').value,
+        acc: acc,
+        bed: bed,
+        bath: bath,
+        amenities: amenities,
         neighborhood: document.getElementById('neighborhood').value,
         room_type: document.getElementById('room_type').value,
         available: document.getElementById('available').value, 
-        
         month: seasonal.month,
         day: seasonal.day,
         day_of_week: seasonal.day_of_week,
@@ -147,7 +154,12 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
                 labels: ['Size', 'Beds', 'Baths', 'Amenities'],
                 datasets: [{
                     label: 'Impact Score',
-                    data: [data.acc * 10, data.bed * 15, data.bath * 20, data.amenities], 
+                    data: [
+                        result.impact.Size, 
+                        result.impact.Beds, 
+                        result.impact.Baths, 
+                        result.impact.Amenities
+                    ], 
                     backgroundColor: '#ef4444', 
                     borderRadius: 8,
                     barThickness: 15
@@ -159,7 +171,11 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
                 responsive: true,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { display: false },
+                    x: { 
+                        display: true, 
+                        grid: { display: false },
+                        title: { display: true, text: 'Contribution Value', font: { size: 10 } }
+                    },
                     y: { grid: { display: false }, ticks: { font: { weight: '600' }, color: '#64748b' } }
                 }
             }

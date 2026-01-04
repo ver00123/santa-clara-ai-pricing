@@ -26,6 +26,9 @@ function resetDashboard() {
     document.getElementById('predictionForm').reset();
     document.getElementById('predictedPrice').innerText = "$0.00";
     document.getElementById('subPrices').classList.add('hidden');
+    document.getElementById('priceRange').classList.add('hidden'); 
+    document.getElementById('aiInsights').classList.add('hidden'); 
+    
     map.flyTo([37.3541, -121.9552], 10);
     marker.setLatLng([37.3541, -121.9552]);
     if (marker.getPopup()) marker.closePopup();
@@ -92,24 +95,14 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
     const bath = Math.abs(parseFloat(bathInput.value)) || 0;
     const amenities = Math.abs(parseFloat(amenInput.value)) || 0;
 
-    accInput.value = acc;
-    bedInput.value = bed;
-    bathInput.value = bath;
-    amenInput.value = amenities;
-
     const seasonal = getSeasonalData();
     const data = {
-        acc: acc,
-        bed: bed,
-        bath: bath,
-        amenities: amenities,
+        acc: acc, bed: bed, bath: bath, amenities: amenities,
         neighborhood: document.getElementById('neighborhood').value,
         room_type: document.getElementById('room_type').value,
         available: document.getElementById('available').value, 
-        month: seasonal.month,
-        day: seasonal.day,
-        day_of_week: seasonal.day_of_week,
-        is_weekend: seasonal.is_weekend
+        month: seasonal.month, day: seasonal.day,
+        day_of_week: seasonal.day_of_week, is_weekend: seasonal.is_weekend
     };
 
     const response = await fetch('/predict', {
@@ -120,10 +113,25 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
 
     const result = await response.json();
     if (result.success) {
+        
         document.getElementById('predictedPrice').innerText = `$${result.price}`;
+        document.getElementById('lowVal').innerText = `$${result.range_low}`;
+        document.getElementById('highVal').innerText = `$${result.range_high}`;
+        document.getElementById('priceRange').classList.remove('hidden');
         document.getElementById('subPrices').classList.remove('hidden');
         document.getElementById('rfVal').innerText = `$${result.rf}`;
-        document.getElementById('xgbVal').innerText = `$${result.xgb}`;
+        document.getElementById('xgbVal').innerText = result.tier;
+
+        const aiInsights = document.getElementById('aiInsights');
+        const insightsList = document.getElementById('insightsList');
+        if (result.insights && result.insights.length > 0) {
+            aiInsights.classList.remove('hidden');
+            insightsList.innerHTML = result.insights.map(text => 
+                `<span class="text-[9px] text-slate-400 italic font-medium">" ${text} "</span>`
+            ).join('');
+        } else {
+            aiInsights.classList.add('hidden');
+        }
 
         const loc = data.neighborhood;
         if(coords[loc]) {
@@ -133,13 +141,15 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
 
         const ctx1 = document.getElementById('modelChart').getContext('2d');
         if(chart1) chart1.destroy();
+        const tierValue = result.tier === "Luxury Class" ? 300 : result.tier === "Standard Class" ? 150 : 75;
+
         chart1 = new Chart(ctx1, {
             type: 'bar',
             data: {
-                labels: ['RF', 'XGB', 'Hybrid'],
+                labels: ['Asset Val', 'Tier Index', 'Final Forecast'],
                 datasets: [{
-                    data: [result.rf, result.xgb, result.price],
-                    backgroundColor: ['#cbd5e1', '#94a3b8', '#ef4444'],
+                    data: [result.rf, tierValue, result.price],
+                    backgroundColor: ['#cbd5e1', '#6366f1', '#ef4444'],
                     borderRadius: 6
                 }]
             },
@@ -154,31 +164,25 @@ document.getElementById('predictionForm').addEventListener('submit', async (e) =
                 labels: ['Size', 'Beds', 'Baths', 'Amenities'],
                 datasets: [{
                     label: 'Impact Score',
-                    data: [
-                        result.impact.Size, 
-                        result.impact.Beds, 
-                        result.impact.Baths, 
-                        result.impact.Amenities
-                    ], 
+                    data: [result.impact.Size, result.impact.Beds, result.impact.Baths, result.impact.Amenities], 
                     backgroundColor: '#ef4444', 
-                    borderRadius: 8,
-                    barThickness: 15
+                    borderRadius: 8, barThickness: 15
                 }]
             },
             options: {
-                indexAxis: 'y', 
-                maintainAspectRatio: false,
-                responsive: true,
+                indexAxis: 'y', maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: {
-                    x: { 
-                        display: true, 
-                        grid: { display: false },
-                        title: { display: true, text: 'Contribution Value', font: { size: 10 } }
-                    },
-                    y: { grid: { display: false }, ticks: { font: { weight: '600' }, color: '#64748b' } }
-                }
+                scales: { x: { display: true, grid: { display: false } }, y: { grid: { display: false } } }
             }
         });
+
+        if (window.innerWidth < 1024) { 
+            setTimeout(() => {
+                document.getElementById('result').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 300);
+        }
     }
 });

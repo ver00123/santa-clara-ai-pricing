@@ -21,7 +21,7 @@
         <div class="bg-slate-900 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-2xl">
             <div>
                 <h1 class="text-2xl font-black tracking-tight">Santa Clara <span class="text-red-500">AI</span> Pricing</h1>
-                <p class="text-slate-400 text-xs">Price Prediction of Santa Clara</p>
+                <p class="text-slate-400 text-xs">Price Prediction & Market Classification</p> 
             </div>
             <button type="button" onclick="resetDashboard()" class="text-xs bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-full transition-all border border-slate-700">Reset Dashboard</button>
         </div>
@@ -50,20 +50,15 @@
                         <div class="space-y-1">
                             <div class="flex justify-between items-center ml-1">
                                 <label class="text-[10px] font-bold text-slate-400 uppercase">Seasonal Logic</label>
-                                <button type="button" id="toggleMode" class="text-[9px] font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter transition-all">
-                                    Switch to Manual
-                                </button>
+                                <button type="button" id="toggleMode" class="text-[9px] font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter transition-all">Switch to Manual</button>
                             </div>
-                            
                             <div id="seasonalContainer" class="w-full h-[42px] bg-slate-100 border border-slate-200 rounded-xl px-2 flex items-center justify-center gap-2 transition-all">
                                 <div id="autoDisplay" class="flex items-center gap-2">
                                     <span class="flex h-2 w-2 relative">
                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                         <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                     </span>
-                                    <span id="seasonalStatus" class="text-[9px] font-black text-slate-600 uppercase tracking-tighter">
-                                        FETCHING DATA...
-                                    </span>
+                                    <span id="seasonalStatus" class="text-[9px] font-black text-slate-600 uppercase tracking-tighter">FETCHING DATA...</span>
                                 </div>
                                 <input type="date" id="manualDate" class="hidden w-full bg-transparent border-none text-xs font-bold text-slate-700 outline-none focus:ring-0">
                             </div>
@@ -110,9 +105,7 @@
                     </div>
 
                     <div class="border-t border-slate-100 my-4 pt-4">
-                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95 shadow-red-100 uppercase tracking-widest text-xs">
-                            Run Prediction
-                        </button>
+                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95 shadow-red-100 uppercase tracking-widest text-xs">Run Prediction</button>
                     </div>
                 </form>
 
@@ -120,24 +113,13 @@
                     <div class="flex gap-3">
                         <div class="w-1 bg-red-500 rounded-full"></div>
                         <p class="text-[9px] text-slate-500 leading-relaxed">
-                            <b class="text-slate-700 uppercase block mb-1">Prediction Consistency</b>
-                            Compares RF and XGB models. A smaller gap means high reliability.
+                            <b class="text-slate-700 uppercase block mb-1">Asset Valuation (RF)</b> Regression model predicting specific base property value.
                         </p>
                     </div>
-
                     <div class="flex gap-3">
-                        <div class="w-1 bg-slate-900 rounded-full"></div>
+                        <div class="w-1 bg-indigo-500 rounded-full"></div>
                         <p class="text-[9px] text-slate-500 leading-relaxed">
-                            <b class="text-slate-700 uppercase block mb-1">Feature Significance</b>
-                            Displays how much each input factor influenced the final price prediction.
-                        </p>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <div class="w-1 bg-slate-400 rounded-full"></div>
-                        <p class="text-[9px] text-slate-500 leading-relaxed">
-                            <b class="text-slate-700 uppercase block mb-1">Market Value</b>
-                            The final price estimation, calculated using a hybrid of AI models and real-time seasonal logic.
+                            <b class="text-slate-700 uppercase block mb-1">Market Tier (XGB)</b> Classification identifying property segments (Luxury/Economy).
                         </p>
                     </div>
                 </div>
@@ -145,22 +127,32 @@
 
             <div class="lg:col-span-8 flex flex-col gap-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-[300px]">
-                    <div id="result" class="flex items-center justify-center p-6 bg-slate-900 rounded-[2rem] border border-slate-800">
-                        <div class="text-center">
-                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Market Value</p>
-                            <h2 id="predictedPrice" class="text-5xl font-black text-white">$0.00</h2>
-                            <div id="subPrices" class="hidden mt-2 flex justify-center gap-3 text-[10px] font-mono text-slate-400">
-                                <span>RF: <span id="rfVal">--</span></span>
-                                <span>XGB: <span id="xgbVal">--</span></span>
+                    <div id="result" class="flex items-center justify-center p-6 bg-slate-900 rounded-[2rem] border border-slate-800 relative overflow-hidden">
+                        <div class="text-center w-full z-10">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Recommended Market Value</p>
+                            <h2 id="predictedPrice" class="text-6xl font-black text-white">$0.00</h2>
+                            
+                            <p id="priceRange" class="hidden text-[10px] text-red-400 font-bold mt-1 uppercase tracking-tighter">
+                                Range: <span id="lowVal">--</span> - <span id="highVal">--</span>
+                            </p>
+
+                            <div id="subPrices" class="hidden mt-4 flex justify-center gap-4 text-[9px] font-mono text-slate-500 uppercase border-t border-slate-800/50 pt-4">
+                                <span>Asset Base: <span id="rfVal" class="text-slate-300">--</span></span> 
+                                <span>Class: <span id="xgbVal" class="text-indigo-400 font-bold">--</span></span> 
+                            </div>
+
+                            <div id="aiInsights" class="hidden mt-4 pt-3 border-t border-slate-800/50">
+                                <div id="insightsList" class="flex flex-col gap-1">
+                                    </div>
                             </div>
                         </div>
                     </div>
                     <div id="map" class="rounded-[2rem] border border-slate-200 overflow-hidden shadow-inner"></div>
                 </div>
                 
-               <div class="flex-1 grid grid-cols-2 gap-4">
+                <div class="flex-1 grid grid-cols-2 gap-4">
                     <div class="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-2 text-center">Model Consistency</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-2 text-center">Output Comparison</p> 
                         <div class="flex-grow min-h-[150px]"><canvas id="modelChart"></canvas></div>
                     </div>
                     <div class="bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col overflow-hidden">
